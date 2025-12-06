@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+*.spec
+
+# Node.js
+node_modules/
+dist/
+build/
+.npm
+.eslintcache
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDES
+.vscode/
+.idea/
+
+# Generated Artifacts
+string_art_sequence.txt
+string_art_sequence.pdf
+*.png
+*.jpg
+!src/assets/*.png
+!src/assets/*.jpg

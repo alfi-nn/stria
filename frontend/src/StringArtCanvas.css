@@ -1,0 +1,82 @@
+.string-art-canvas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 800px;
+    background: #111;
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+canvas {
+    background: #0a0a0a;
+    border-radius: 50%;
+    /* circular view looks cool */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+}
+
+.canvas-controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background: #222;
+    border-radius: 0.5rem;
+}
+
+.progress-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    color: #888;
+    font-family: monospace;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #646cff;
+    transition: width 0.1s linear;
+}
+
+.buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    background: #333;
+    border: 1px solid #444;
+}
+
+.control-btn:hover {
+    background: #444;
+}
+
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #ccc;
+}
+
+input[type="range"] {
+    width: 100px;
+}

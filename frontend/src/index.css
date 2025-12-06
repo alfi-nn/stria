@@ -1,0 +1,46 @@
+:root {
+  /* Default Dark Theme */
+  --bg-color: #242424;
+  --text-color: rgba(255, 255, 255, 0.87);
+  --card-bg: #1a1a1a;
+  --controls-bg: #2a2a2a;
+  --input-bg: #1a1a1a;
+  --input-border: #333;
+  --button-text: white;
+  --secondary-button-bg: #2a2a2a;
+  --secondary-button-border: #646cff;
+  --heading-gradient-from: #646cff;
+  --heading-gradient-to: #a464ff;
+  --text-muted: #888;
+  --text-label: #ccc;
+
+  --primary-color: #646cff;
+}
+
+[data-theme='light'] {
+  --bg-color: #f5f5f5;
+  --text-color: #213547;
+  --card-bg: #ffffff;
+  --controls-bg: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #ccc;
+  --button-text: white;
+  --secondary-button-bg: #ffffff;
+  --secondary-button-border: #646cff;
+  --heading-gradient-from: #4fabff;
+  --heading-gradient-to: #646cff;
+  --text-muted: #666;
+  --text-label: #555;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  transition: background-color 0.3s, color 0.3s;
+}
