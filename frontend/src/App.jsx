@@ -1,57 +1,35 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useRef } from 'react'
+import Header from './components/Header'
+import ControlPanel from './components/ControlPanel'
 import StringArtCanvas from './StringArtCanvas'
-import './App.css'
+import GlassCard from './components/GlassCard'
+import Dashboard from './components/Dashboard'
+import Welcome from './components/Welcome'
+import { Download, FileText, Image as ImageIcon, Save, Check } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useHistory } from './hooks/useHistory'
+import './index.css'
 
 function App() {
+    const [view, setView] = useState('welcome') // 'welcome' | 'dashboard' | 'create'
+    const { history, saveItem, deleteItem, getStats } = useHistory()
+
     const [file, setFile] = useState(null)
-    const [preview, setPreview] = useState(null)
     const [nNails, setNNails] = useState(200)
     const [maxLines, setMaxLines] = useState(4000)
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState({ sequence: [], image: null })
     const [error, setError] = useState(null)
-    const [theme, setTheme] = useState('dark')
-    const [logs, setLogs] = useState([])
+    const [savedId, setSavedId] = useState(null)
 
-    useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme)
-    }, [theme])
-
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'dark' ? 'light' : 'dark')
-    }
-
-    const addLog = (msg) => {
-        setLogs(prev => [...prev, `${new Date().toISOString().split('T')[1]} - ${msg}`].slice(-10))
-        console.log(msg)
-    }
-
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0]
-        setFile(selectedFile)
-
-        if (selectedFile) {
-            const reader = new FileReader()
-            reader.onloadend = () => {
-                setPreview(reader.result)
-            }
-            reader.readAsDataURL(selectedFile)
-        } else {
-            setPreview(null)
-        }
-    }
-
+    // Backend Integration
     const handleGenerate = async () => {
-        addLog("Generate button clicked");
-        if (!file) {
-            addLog("No file selected");
-            return;
-        }
+        if (!file) return;
 
         setLoading(true)
         setError(null)
         setResult({ sequence: [], image: null })
+        setSavedId(null)
 
         const formData = new FormData()
         formData.append('image', file)
@@ -59,13 +37,10 @@ function App() {
         formData.append('max_lines', maxLines)
 
         try {
-            addLog("Sending fetch request to /api/generate");
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 body: formData,
             })
-
-            addLog(`Response received: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -76,15 +51,13 @@ function App() {
             const decoder = new TextDecoder()
             let buffer = ''
 
-            addLog("Starting to read stream");
             while (true) {
                 const { done, value } = await reader.read()
                 if (done) break
 
                 buffer += decoder.decode(value, { stream: true })
                 const lines = buffer.split('\n')
-
-                buffer = lines.pop() // Keep the last partial line
+                buffer = lines.pop()
 
                 for (const line of lines) {
                     if (!line.trim()) continue
@@ -96,26 +69,23 @@ function App() {
                                 sequence: [...(prev?.sequence || []), data.nail]
                             }))
                         } else if (data.type === 'result') {
-                            addLog("Got final result");
                             setResult(prev => ({
                                 ...prev,
                                 image: data.image,
                                 sequence: data.sequence
                             }))
                         } else if (data.type === 'error') {
-                            addLog(`Backend error: ${data.error}`);
                             throw new Error(data.error)
                         }
                     } catch (e) {
-                        console.warn("Failed to parse", line, e)
+                        console.warn("Stream parse error", e)
                     }
                 }
             }
 
         } catch (err) {
-            addLog(`Generation error: ${err.message}`)
             console.error(err)
-            setError(`Failed to generate: ${err.message}`)
+            setError(err.message || "Failed to generate art")
         } finally {
             setLoading(false)
         }
@@ -125,7 +95,6 @@ function App() {
         if (!result.sequence || result.sequence.length < 2) return
 
         try {
-            // Dynamic import to avoid issues if not fully loaded yet (though standard import is fine too)
             const { jsPDF } = await import('jspdf')
             const doc = new jsPDF()
 
@@ -134,24 +103,19 @@ function App() {
             const pageHeight = doc.internal.pageSize.height
             const margin = 20
 
-            // Header
             doc.setFontSize(16)
             doc.text("String Art Sequence", margin, y)
             y += 10
             doc.setFontSize(11)
-            doc.text(`Nails: ${nNails} (Numbered 0 to ${nNails - 1})`, margin, y)
+            doc.text(`Nails: ${nNails}`, margin, y)
             y += 7
             doc.text(`Total Lines: ${nLines}`, margin, y)
             y += 10
-            doc.setFontSize(10)
-            doc.text("Sequence: <Start Nail> to <End Nail>, <Line Number>/<Total>", margin, y)
+
+            doc.line(margin, y, 210 - margin, y)
             y += 10
 
-            doc.line(margin, y, 210 - margin, y) // Horizontal line
-            y += 10
-
-            // Content
-            doc.setFont("courier", "normal") // Monospace for better alignment
+            doc.setFont("courier", "normal")
             doc.setFontSize(10)
 
             for (let i = 0; i < nLines; i++) {
@@ -159,120 +123,143 @@ function App() {
                     doc.addPage()
                     y = 20
                 }
-
                 const start = result.sequence[i]
                 const end = result.sequence[i + 1]
-                const lineStr = `${start.toString().padStart(4)} to ${end.toString().padStart(4)}, ${(i + 1).toString().padStart(5)}/${nLines}`
-                doc.text(lineStr, margin, y)
+                doc.text(`${String(start).padStart(4)} -> ${String(end).padStart(4)}`, margin, y)
                 y += 6
             }
 
             doc.save('string_art_sequence.pdf')
         } catch (e) {
             console.error(e)
-            addLog("Failed to generate PDF: " + e.message)
+            setError("PDF Generation failed")
         }
     }
 
+    const handleSave = () => {
+        if (!result.image) return;
+        const newItem = saveItem({
+            filename: file?.name || 'Untitled',
+            nNails,
+            maxLines,
+            sequence: result.sequence,
+            imageThumbnail: result.image
+        });
+        setSavedId(newItem.id);
+    };
+
     return (
-        <div className="container">
-            <header>
-                <div>
-                    <h1>String Art Generator</h1>
-                    <p>Turn your images into thread art</p>
-                </div>
-                <button onClick={toggleTheme} className="secondary">
-                    {theme === 'dark' ? '☀️ Bright Mode' : '🌙 Dark Mode'}
-                </button>
-            </header>
+        <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-white selection:bg-accent-primary selection:text-white transition-colors duration-300" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {/* Background Glows */}
+            <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-accent-primary/10 dark:bg-accent-primary/20 blur-[120px] rounded-full pointer-events-none transition-colors duration-500" />
+            <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent-secondary/10 dark:bg-accent-secondary/20 blur-[120px] rounded-full pointer-events-none transition-colors duration-500" />
 
-            <main>
-                <div className="controls">
-                    <div className="input-group">
-                        <label>Upload Image</label>
-                        <input type="file" accept="image/*" onChange={handleFileChange} />
-                    </div>
+            {view === 'welcome' ? (
+                <Welcome onStart={() => setView('create')} />
+            ) : (
+                <div className="container mx-auto px-6 pb-20 relative z-10">
+                    <Header currentView={view} onNavigate={setView} onLogout={() => setView('welcome')} />
 
-                    <div className="input-group">
-                        <label>Number of Nails</label>
-                        <input
-                            type="number"
-                            value={nNails}
-                            onChange={(e) => setNNails(parseInt(e.target.value))}
-                            min="100"
-                            max="1000"
+                    {view === 'dashboard' && (
+                        <Dashboard
+                            history={history}
+                            stats={getStats()}
+                            onDelete={deleteItem}
+                            onCreateNew={() => setView('create')}
                         />
-                    </div>
+                    )}
 
-                    <div className="input-group">
-                        <label>Max Lines</label>
-                        <input
-                            type="number"
-                            value={maxLines}
-                            onChange={(e) => setMaxLines(parseInt(e.target.value))}
-                            min="1000"
-                            max="10000"
-                        />
-                    </div>
+                    {view === 'create' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8"
+                        >
+                            {/* Left Panel: Controls */}
+                            <div className="lg:col-span-4">
+                                <ControlPanel
+                                    file={file}
+                                    setFile={setFile}
+                                    nNails={nNails}
+                                    setNNails={setNNails}
+                                    maxLines={maxLines}
+                                    setMaxLines={setMaxLines}
+                                    handleGenerate={handleGenerate}
+                                    loading={loading}
+                                    error={error}
+                                />
+                            </div>
 
-                    <button onClick={handleGenerate} disabled={!file || loading}>
-                        {loading ? 'Generating...' : 'Generate Art'}
-                    </button>
+                            {/* Right Panel: Visualization */}
+                            <div className="lg:col-span-8 flex flex-col h-full">
+                                <AnimatePresence mode="wait">
+                                    {result.sequence.length > 0 || loading ? (
+                                        <GlassCard className="min-h-[600px] flex items-center justify-center relative">
+                                            {/* Main Canvas */}
+                                            {result.sequence.length > 0 && (
+                                                <StringArtCanvas
+                                                    sequence={result.sequence}
+                                                    nNails={nNails}
+                                                    theme="dark" // Always dark for premium look
+                                                />
+                                            )}
 
-                    {error && <div className="error">{error}</div>}
-                </div>
+                                            {/* Loading State Overlay */}
+                                            {loading && result.sequence.length === 0 && (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+                                                    <div className="w-16 h-16 border-4 border-accent-primary border-t-transparent rounded-full animate-spin mb-4" />
+                                                    <p className="text-slate-500 dark:text-white/50 text-sm animate-pulse">Calculating paths...</p>
+                                                </div>
+                                            )}
+                                        </GlassCard>
+                                    ) : (
+                                        <GlassCard className="h-full flex flex-col items-center justify-center text-center p-12 border-dashed border-slate-200 dark:border-white/10" delay={0.3}>
+                                            <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
+                                                <ImageIcon className="w-10 h-10 text-slate-400 dark:text-white/20" />
+                                            </div>
+                                            <h2 className="text-2xl font-bold mb-2 text-slate-800 dark:text-white transition-colors">Ready to Create</h2>
+                                            <p className="text-slate-500 dark:text-white/50 max-w-md transition-colors">
+                                                Select an image and adjust parameters to generate your unique string art masterpiece.
+                                            </p>
+                                        </GlassCard>
+                                    )}
+                                </AnimatePresence>
 
-                <div className="preview-area">
-                    {preview && (
-                        <div className="image-card">
-                            <h3>Original</h3>
-                            <img src={preview} alt="Original" />
-                        </div>
+                                {/* Action Bar for Results */}
+                                {result.image && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex gap-4 justify-end"
+                                    >
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={!!savedId}
+                                            className={`
+                                            flex items-center gap-2 px-6 py-3 rounded-xl border transition-all text-sm font-medium
+                                            ${savedId
+                                                    ? 'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-200 cursor-default'
+                                                    : 'bg-white hover:bg-slate-50 border-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 hover:scale-105 active:scale-95'}
+                                        `}
+                                        >
+                                            {savedId ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                                            {savedId ? 'Saved to Gallery' : 'Save to Gallery'}
+                                        </button>
+
+                                        <button
+                                            onClick={downloadSequence}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent-primary/10 hover:bg-accent-primary/20 border border-accent-primary/50 text-accent-primary transition-all hover:scale-105 active:scale-95 text-sm font-medium"
+                                        >
+                                            <FileText className="w-4 h-4" />
+                                            Download PDF Sequence
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </motion.div>
                     )}
                 </div>
-
-                {(result.sequence.length > 0 || result.image) && (
-                    <div className="results-container">
-                        <div className="image-card result">
-                            <h3>Generated Result (Static)</h3>
-                            {result.image ? (
-                                <img src={result.image} alt="Result" />
-                            ) : (
-                                <div className="loading-container" style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    <div className="spinner"></div>
-                                    <p>Generating... {result.sequence.length} lines calculated</p>
-                                </div>
-                            )}
-                            {result.image && (
-                                <button onClick={downloadSequence} className="secondary">
-                                    Download Sequence
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="visualization-card">
-                            <h3>Visualization Playback</h3>
-                            {!result.image ? (
-                                <div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    Waiting for generation to complete...
-                                </div>
-                            ) : (
-                                <StringArtCanvas
-                                    sequence={result.sequence} // Only passed when result.image is ready (implicitly)
-                                    nNails={nNails}
-                                    theme={theme}
-                                />
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                <div className="debug-logs" style={{ marginTop: '20px', padding: '10px', background: 'rgba(0,0,0,0.8)', color: '#0f0', borderRadius: '5px', fontSize: '12px', fontFamily: 'monospace', textAlign: 'left' }}>
-                    <strong>Debug Logs:</strong>
-                    {logs.length === 0 && <div>Waiting for interactions...</div>}
-                    {logs.map((log, i) => <div key={i}>{log}</div>)}
-                </div>
-            </main>
+            )}
         </div>
     )
 }

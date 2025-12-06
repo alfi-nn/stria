@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import './StringArtCanvas.css'
+
 
 const StringArtCanvas = ({ sequence, nNails, width = 800, height = 800, theme = 'dark' }) => {
     const canvasRef = useRef(null)
@@ -163,41 +163,53 @@ const StringArtCanvas = ({ sequence, nNails, width = 800, height = 800, theme = 
     }
 
     return (
-        <div className="string-art-canvas" style={{ background: 'var(--card-bg)', borderRadius: '1rem', overflow: 'hidden' }}>
-            <div style={{ position: 'relative' }}>
-                <canvas ref={canvasRef} style={{ display: 'block' }} />
+        <div className="flex flex-col gap-6 w-full">
+            <div className="relative aspect-square w-full max-w-[600px] mx-auto bg-black/40 rounded-full border border-white/10 shadow-2xl shadow-black/50 overflow-hidden backdrop-blur-sm">
+                <canvas ref={canvasRef} className="w-full h-full block" />
             </div>
 
-            <div className="controls-bar" style={{ padding: '1rem', borderTop: '1px solid var(--input-border)', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button onClick={togglePlay} className="secondary" style={{ width: 'auto', margin: 0 }}>
-                    {isPlaying ? '⏸ Pause' : '▶ Play'}
-                </button>
-                <button onClick={restart} className="secondary" style={{ width: 'auto', margin: 0 }}>
-                    ⏮ Restart
-                </button>
+            <div className="glass-panel rounded-xl p-4 flex flex-wrap items-center gap-4 justify-between">
+                <div className="flex gap-2">
+                    <button
+                        onClick={togglePlay}
+                        className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors border border-white/5"
+                    >
+                        {isPlaying ? '⏸ Pause' : '▶ Play'}
+                    </button>
+                    <button
+                        onClick={restart}
+                        className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors border border-white/5"
+                    >
+                        ⏮ Restart
+                    </button>
+                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label>Speed:</label>
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-white/50 uppercase tracking-wider font-semibold">Speed</span>
                     <input
                         type="range"
                         min="1"
                         max="100"
                         value={speed}
                         onChange={(e) => setSpeed(parseInt(e.target.value))}
+                        className="w-24 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
                     />
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input
-                        type="checkbox"
-                        checked={showNumbers}
-                        onChange={(e) => setShowNumbers(e.target.checked)}
-                    />
-                    Numbers
-                </label>
+                <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-white/70 hover:text-white transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={showNumbers}
+                            onChange={(e) => setShowNumbers(e.target.checked)}
+                            className="rounded border-white/20 bg-white/5 checked:bg-accent-primary"
+                        />
+                        Show Numbers
+                    </label>
+                </div>
 
-                <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                    Lines: {progress} / {sequence.length - 1}
+                <div className="text-xs font-mono text-white/40 ml-auto">
+                    {progress} / {sequence.length - 1} steps
                 </div>
             </div>
         </div>
