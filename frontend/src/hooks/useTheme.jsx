@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export const useTheme = () => {
+const ThemeContext = createContext();
+
+export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
         if (typeof window !== 'undefined') {
             const savedTheme = localStorage.getItem('theme');
@@ -26,5 +28,17 @@ export const useTheme = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
-    return { theme, toggleTheme };
+    return (
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+            {children}
+        </ThemeContext.Provider>
+    );
+};
+
+export const useTheme = () => {
+    const context = useContext(ThemeContext);
+    if (context === undefined) {
+        throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return context;
 };

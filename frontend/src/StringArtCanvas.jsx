@@ -30,15 +30,28 @@ const StringArtCanvas = ({ sequence, nNails, width = 800, height = 800, theme = 
         ctx.scale(dpr, dpr)
         ctxRef.current = ctx
 
-        // Reset if sequence changes significantly (new generation)
-        currentIndexRef.current = 0
-        setProgress(0)
-        setIsPlaying(true)
-
         // Initial Draw (Background + Nails)
         drawStaticElements(ctx)
 
-    }, [sequence, nNails, width, height, theme])
+        // Only reset if it's a completely new sequence start (e.g. length 0 or very small)
+        if (sequence.length < 5) {
+            currentIndexRef.current = 0
+            setProgress(0)
+            setIsPlaying(true)
+        }
+
+    }, [nNails, width, height, theme]) // Removed 'sequence' dependency from full reset
+
+    // Separate effect to handle sequence updates
+    useEffect(() => {
+        // If sequence was cleared (new generation started), reset
+        if (sequence.length === 0) {
+            currentIndexRef.current = 0
+            setProgress(0)
+            setIsPlaying(true)
+            if (ctxRef.current) drawStaticElements(ctxRef.current)
+        }
+    }, [sequence.length])
 
     const drawStaticElements = (ctx) => {
         const w = width
@@ -172,43 +185,43 @@ const StringArtCanvas = ({ sequence, nNails, width = 800, height = 800, theme = 
                 <div className="flex gap-2">
                     <button
                         onClick={togglePlay}
-                        className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors border border-white/5"
+                        className="px-4 py-2 rounded-lg bg-slate-200/50 hover:bg-slate-300/50 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white text-sm font-medium transition-colors border border-slate-300/30 dark:border-white/5"
                     >
                         {isPlaying ? '⏸ Pause' : '▶ Play'}
                     </button>
                     <button
                         onClick={restart}
-                        className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors border border-white/5"
+                        className="px-4 py-2 rounded-lg bg-slate-200/50 hover:bg-slate-300/50 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white text-sm font-medium transition-colors border border-slate-300/30 dark:border-white/5"
                     >
                         ⏮ Restart
                     </button>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <span className="text-xs text-white/50 uppercase tracking-wider font-semibold">Speed</span>
+                    <span className="text-xs text-slate-500 dark:text-white/50 uppercase tracking-wider font-semibold">Speed</span>
                     <input
                         type="range"
                         min="1"
                         max="100"
                         value={speed}
                         onChange={(e) => setSpeed(parseInt(e.target.value))}
-                        className="w-24 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
+                        className="w-24 h-1.5 bg-slate-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-accent-primary"
                     />
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-white/70 hover:text-white transition-colors">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-colors">
                         <input
                             type="checkbox"
                             checked={showNumbers}
                             onChange={(e) => setShowNumbers(e.target.checked)}
-                            className="rounded border-white/20 bg-white/5 checked:bg-accent-primary"
+                            className="rounded border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-white/5 checked:bg-accent-primary"
                         />
                         Show Numbers
                     </label>
                 </div>
 
-                <div className="text-xs font-mono text-white/40 ml-auto">
+                <div className="text-xs font-mono text-slate-400 dark:text-white/40 ml-auto">
                     {progress} / {sequence.length - 1} steps
                 </div>
             </div>

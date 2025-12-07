@@ -8,11 +8,13 @@ import Welcome from './components/Welcome'
 import { Download, FileText, Image as ImageIcon, Save, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHistory } from './hooks/useHistory'
+import { useTheme } from './hooks/useTheme'
 import './index.css'
 
 function App() {
     const [view, setView] = useState('welcome') // 'welcome' | 'dashboard' | 'create'
     const { history, saveItem, deleteItem, getStats } = useHistory()
+    const { theme } = useTheme()
 
     const [file, setFile] = useState(null)
     const [nNails, setNNails] = useState(200)
@@ -21,6 +23,8 @@ function App() {
     const [result, setResult] = useState({ sequence: [], image: null })
     const [error, setError] = useState(null)
     const [savedId, setSavedId] = useState(null)
+
+    // ... (omitting unchanged backend logic for brevity in tool call, but strictly finding target lines)
 
     // Backend Integration
     const handleGenerate = async () => {
@@ -200,7 +204,7 @@ function App() {
                                                 <StringArtCanvas
                                                     sequence={result.sequence}
                                                     nNails={nNails}
-                                                    theme="dark" // Always dark for premium look
+                                                    theme={theme}
                                                 />
                                             )}
 

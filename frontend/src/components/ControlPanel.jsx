@@ -1,7 +1,8 @@
-import React from 'react';
-import { Upload, Sliders, Play, AlertCircle, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, Sliders, AlertCircle, Sparkles, Crop as CropIcon } from 'lucide-react';
 import GlassCard from './GlassCard';
 import { AnimatePresence, motion } from 'framer-motion';
+import ImageCropper from './ImageCropper';
 
 const ControlPanel = ({
     file,
@@ -14,40 +15,100 @@ const ControlPanel = ({
     loading,
     error
 }) => {
+    const [showCropper, setShowCropper] = useState(false);
+    const [cropperSrc, setCropperSrc] = useState(null);
+
+    const onFileSelect = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const selectedFile = e.target.files[0];
+            const reader = new FileReader();
+            reader.addEventListener('load', () => {
+                setCropperSrc(reader.result.toString() || '');
+                setShowCropper(true);
+            });
+            reader.readAsDataURL(selectedFile);
+        }
+    };
+
+    const handleCropComplete = (croppedBlob) => {
+        // Convert Blob to File to match expected prop type (if used elsewhere as file)
+        const croppedFile = new File([croppedBlob], "cropped.jpg", { type: "image/jpeg" });
+        setFile(croppedFile);
+        setShowCropper(false);
+    };
+
+    const handleReCrop = (e) => {
+        e.stopPropagation(); // Prevent file input trigger
+        if (file) {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => {
+                setCropperSrc(reader.result.toString() || '');
+                setShowCropper(true);
+            });
+            reader.readAsDataURL(file);
+        }
+    }
+
     return (
         <GlassCard className="h-full flex flex-col gap-6 bg-white/70 dark:bg-black/40">
+            {showCropper && cropperSrc && (
+                <ImageCropper
+                    imageSrc={cropperSrc}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => setShowCropper(false)}
+                />
+            )}
+
             <div>
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white transition-colors">
                     <Upload className="w-5 h-5 text-accent-primary" />
                     Input Image
                 </h2>
-                <label className={`
+                <div className={`
                     flex flex-col items-center justify-center w-full h-48 rounded-xl border-2 border-dashed
-                    transition-all cursor-pointer group relative overflow-hidden
+                    transition-all group relative overflow-hidden
                     ${file
                         ? 'border-accent-primary bg-accent-primary/10'
-                        : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/30 hover:bg-slate-100 dark:hover:bg-white/5'}
+                        : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/30 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer'}
                 `}>
-                    <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => setFile(e.target.files[0])}
-                    />
+                    {!file && (
+                        <input
+                            type="file"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                            accept="image/*"
+                            onChange={onFileSelect}
+                        />
+                    )}
 
                     {file ? (
                         <div className="absolute inset-0 z-10">
                             <img
                                 src={URL.createObjectURL(file)}
                                 alt="Preview"
-                                className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+                                className="w-full h-full object-cover opacity-60 transition-transform duration-500"
                             />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <p className="text-white font-medium">Click to change</p>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity gap-3">
+                                <button
+                                    onClick={handleReCrop}
+                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-lg text-white font-medium flex items-center gap-2 transition-colors border border-white/10"
+                                >
+                                    <CropIcon className="w-4 h-4" />
+                                    Adjust Crop
+                                </button>
+                                <label className="px-4 py-2 bg-accent-primary hover:bg-accent-primary/80 rounded-lg text-white font-medium flex items-center gap-2 transition-colors cursor-pointer shadow-lg shadow-accent-primary/20">
+                                    <Upload className="w-4 h-4" />
+                                    Change Image
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={onFileSelect}
+                                    />
+                                </label>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-white/40 group-hover:text-slate-700 dark:group-hover:text-white/70 transition-colors p-6 text-center">
+                        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-white/40 group-hover:text-slate-700 dark:group-hover:text-white/70 transition-colors p-6 text-center pointer-events-none">
                             <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center transition-transform group-hover:scale-110">
                                 <Upload className="w-6 h-6" />
                             </div>
@@ -55,7 +116,7 @@ const ControlPanel = ({
                             <p className="text-xs opacity-70">Supports JPG, PNG</p>
                         </div>
                     )}
-                </label>
+                </div>
             </div>
 
             <div className="space-y-6">
