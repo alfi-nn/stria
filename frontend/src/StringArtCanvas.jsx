@@ -14,7 +14,7 @@ const StringArtCanvas = ({ sequence, nNails, width = 800, height = 800, theme = 
     // Colors
     const colors = {
         light: { bg: '#ffffff', nail: '#dddddd', thread: 'rgba(0, 0, 0, 0.4)', text: '#666666' },
-        dark: { bg: '#1a1a1a', nail: '#333333', thread: 'rgba(255, 255, 255, 0.4)', text: '#888888' }
+        dark: { bg: '#ffffff', nail: '#dddddd', thread: 'rgba(0, 0, 0, 0.4)', text: '#666666' }
     }
     const currentTheme = colors[theme === 'light' ? 'light' : 'dark']
 

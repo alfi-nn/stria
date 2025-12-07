@@ -103,40 +103,61 @@ function App() {
             const doc = new jsPDF()
 
             const nLines = result.sequence.length - 1
-            let y = 20
             const pageHeight = doc.internal.pageSize.height
-            const margin = 20
+            const pageWidth = doc.internal.pageSize.width
+            const margin = 15
+            const colCount = 3
+            const colWidth = (pageWidth - (margin * 2)) / colCount
 
+            // Header
+            let y = 20
             doc.setFontSize(16)
             doc.text("String Art Sequence", margin, y)
-            y += 10
-            doc.setFontSize(11)
-            doc.text(`Nails: ${nNails}`, margin, y)
-            y += 7
-            doc.text(`Total Lines: ${nLines}`, margin, y)
-            y += 10
-
-            doc.line(margin, y, 210 - margin, y)
+            y += 8
+            doc.setFontSize(10)
+            doc.text(`Nails: ${nNails} | Total Lines: ${nLines}`, margin, y)
+            y += 5
+            doc.setLineWidth(0.5)
+            doc.line(margin, y, pageWidth - margin, y)
             y += 10
 
             doc.setFont("courier", "normal")
-            doc.setFontSize(10)
+            doc.setFontSize(9)
+
+            let startY = y // Starting Y for columns on the first page
+            let currentX = margin
+            let currentY = startY
 
             for (let i = 0; i < nLines; i++) {
-                if (y > pageHeight - margin) {
-                    doc.addPage()
-                    y = 20
+                if (currentY > pageHeight - margin) {
+                    // Move to next column
+                    currentX += colWidth
+
+                    // If we've exceeded page width, new page
+                    if (currentX + colWidth > pageWidth) {
+                        doc.addPage()
+                        currentX = margin
+                        startY = margin + 10 // Reset startY for new page (no header)
+                    }
+
+                    currentY = startY
                 }
+
                 const start = result.sequence[i]
                 const end = result.sequence[i + 1]
-                doc.text(`${String(start).padStart(4)} -> ${String(end).padStart(4)}`, margin, y)
-                y += 6
+                const stepInfo = `${i + 1}/${nLines}`
+                // Pad step info to align arrows: "1/4000" vs "4000/4000"
+                // Max length of "4000/4000" is 9. Let's padEnd(10).
+                const text = `${stepInfo.padEnd(10)}: ${String(start).padStart(3)} -> ${String(end).padStart(3)}`
+
+                doc.text(text, currentX, currentY)
+                currentY += 4 // Reduced line height for density
             }
 
             doc.save('string_art_sequence.pdf')
         } catch (e) {
             console.error(e)
-            setError("PDF Generation failed")
+            setError(`PDF Generation failed: ${e.message}`)
         }
     }
 
